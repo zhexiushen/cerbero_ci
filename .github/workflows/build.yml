@@ -186,12 +186,12 @@ jobs:
           CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/cross-macos-universal.cbc"
           CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
-          CERBERO_PACKAGE_ARGS: "-t"
+          CERBERO_PACKAGE_ARGS: ""
           CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
           CERBERO_BOOTSTRAP_SYSTEM: "no"
-          # HAVE_CCACHE: "yes"
+          HAVE_CCACHE: ""
           # location where the cerbero git repo is stored on the image
-          CERBERO_HOST_DIR: "/Users/gst-ci/cerbero/"
+          CERBERO_HOST_DIR: "/Users/gst-ci/cerbero"
         run: |
           ./ci/cerbero_setup.sh cerbero_before_script
           ./ci/cerbero_setup.sh cerbero_deps_script
