@@ -39,9 +39,9 @@ jobs:
       - name: Install build tools
         run: pip install ninja conan cmake
 
-      - name: Setup compiler (Windows)
-        if: matrix.os == 'windows-2022'
-        uses: ilammy/msvc-dev-cmd@v1
+      # - name: Setup compiler (Windows)
+      #   if: matrix.os == 'windows-2022'
+      #   uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install conan profile
         run: conan config install .github/conan_profiles/${{ matrix.os }}-${{ matrix.arch }} -tf profiles
