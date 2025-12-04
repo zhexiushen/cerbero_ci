@@ -183,7 +183,7 @@ jobs:
         working-directory: cerbero
         env:
           CERBERO_HOME: "cb"
-          # CERBERO_SOURCES: "cerbero-sources"
+          CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/cross-macos-universal.cbc"
           CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
           CERBERO_PACKAGE_ARGS: "-t"
