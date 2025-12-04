@@ -28,6 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Setup git config
+        if: matrix.os == 'windows-2022'
+        run: C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -use-full-path -lc "git config --global core.autocrlf false"
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13.x'
@@ -152,7 +156,7 @@ jobs:
           CERBERO_HOME: "cb"
           CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/win64.cbc"
-          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
+          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror -v norust"
           CERBERO_PACKAGE_ARGS: "-t"
           CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
           CERBERO_BOOTSTRAP_SYSTEM: "no"
@@ -169,7 +173,7 @@ jobs:
           CERBERO_HOME: "cb"
           CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/win64.cbc"
-          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
+          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror -v norust"
           CERBERO_PACKAGE_ARGS: "-t"
           CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
           CERBERO_BOOTSTRAP_SYSTEM: "no"
@@ -191,7 +195,7 @@ jobs:
           CERBERO_HOME: "cb"
           CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/cross-macos-universal.cbc"
-          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
+          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror -v norust"
           CERBERO_PACKAGE_ARGS: ""
           CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
           CERBERO_BOOTSTRAP_SYSTEM: "no"
