@@ -146,7 +146,7 @@ jobs:
           CERBERO_HOME: "cb"
           # CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/win64.cbc -c localconf.cbc"
-          CERBERO_ARGS: "${DEFAULT_CERBERO_ARGS} -v nowerror"
+          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
           CERBERO_PACKAGE_ARGS: "-t"
           CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
           CERBERO_BOOTSTRAP_SYSTEM: "no"
@@ -163,7 +163,7 @@ jobs:
           CERBERO_HOME: "cb"
           # CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/win64.cbc -c localconf.cbc"
-          CERBERO_ARGS: "${DEFAULT_CERBERO_ARGS} -v nowerror"
+          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
           CERBERO_PACKAGE_ARGS: "-t"
           CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
           CERBERO_BOOTSTRAP_SYSTEM: "no"
@@ -185,7 +185,7 @@ jobs:
           CERBERO_HOME: "cb"
           # CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/cross-macos-universal.cbc -c localconf.cbc"
-          CERBERO_ARGS: "${DEFAULT_CERBERO_ARGS} -v nowerror"
+          CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
           CERBERO_PACKAGE_ARGS: "-t"
           CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
           CERBERO_BOOTSTRAP_SYSTEM: "no"
