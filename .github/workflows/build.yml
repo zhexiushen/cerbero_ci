@@ -1,79 +1,224 @@
-name: Cerbero CI (GitLab-Equivalent)
+name: Build gstreamer using cerbero
 
 on:
   workflow_dispatch:
   workflow_call:
 
 jobs:
-  cerbero:
+  build_cerbero:
     strategy:
       matrix:
         include:
           - os: windows-2022
-            config: config/win64.cbc
+            arch: x64
+            base_name: windows-x86_64
           - os: macos-15
-            config: config/cross-macos-universal.cbc
+            arch: armv8
+            base_name: macos-armv8
 
     runs-on: ${{ matrix.os }}
+
+    env:
+      gst_version: 1.26.8
+      DEFAULT_CERBERO_ARGS: >
+        --variants werror
+        --clocktime
+        --timestamps
 
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Python
-        uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: '3.13.x'
 
       - name: Install build tools
-        run: pip install meson ninja cmake
+        run: pip install ninja conan cmake
 
-      - name: Clone Cerbero
-        run: |
-          git clone --depth 1 --branch 1.26.8 https://gitlab.freedesktop.org/gstreamer/cerbero.git
+      - name: Setup compiler (Windows)
+        if: matrix.os == 'windows-2022'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install conan profile
+        run: conan config install .github/conan_profiles/${{ matrix.os }}-${{ matrix.arch }} -tf profiles
+
+      - name: Cache conan
+        uses: actions/cache@v4
+        id: cache-conan
+        with:
+          path: ~/.conan2
+          key: ${{ matrix.base_name }}-conan-srt
+          restore-keys: ${{ matrix.base_name }}-conan-
+
+      - name: Install SRT (Windows)
+        if: matrix.os == 'windows-2022' && steps.cache-conan.outputs.cache-hit != 'true'
+        run: conan install --requires srt/1.5.4 --build=missing -pr:a ${{ matrix.os }}-${{ matrix.arch }} -s build_type=Release -g PkgConfigDeps
+
+      # - name: Install SRT (macOS)
+      #   if: matrix.os == 'macos-15'
+      #   run: brew install srt
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.8.*
+          cache: true
+          dir: ${{ github.workspace }}
+          modules: 'qtshadertools'
+
+      # - name: Set env var (Windows)
+      #   env:
+      #     windows_meson_args: >
+      #       --prefix=${{ runner.temp }}\gstreamer
+      #       -Dbase=enabled
+      #       -Dgood=enabled
+      #       -Dbad=enabled
+      #       -Dgst-plugins-bad:srt=enabled
+      #       -Dgst-plugins-bad:qsv=enabled
+      #       -Dgst-plugins-bad:d3d11=enabled
+      #       -Dgst-plugins-bad:qt6d3d11=enabled
+      #       -Dlibav=enabled
+      #       -Dlibxml2:python=false
+      #   run: echo "meson_args=${{ env.windows_meson_args }}" >> $GITHUB_ENV
+
+      # - name: Set env var (macOS)
+      #   if: matrix.os == 'macos-15'
+      #   env:
+      #     macos_meson_args: >
+      #       --prefix=${{ runner.temp }}/gstreamer
+      #       -Dbase=enabled
+      #       -Dgood=enabled
+      #       -Dbad=enabled
+      #       -Dgst-plugins-base:gl=enabled
+      #       -Dgst-plugins-good:qt6=enabled
+      #       -Dgst-plugins-bad:applemedia=enabled
+      #       -Dlibav=enabled
+      #   run: echo "meson_args=${{ env.macos_meson_args }}" >> $GITHUB_ENV
+
+      # - name: Generate meson config hash
+      #   id: meson-hash
+      #   shell: bash
+      #   run: echo "hash=$(echo '$meson_args' | sha256sum | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      # - name: Cache gstreamer
+      #   uses: actions/cache@v4
+      #   id: cache-gstreamer
+      #   with:
+      #     path: gstreamer
+      #     key: ${{ matrix.base_name }}-gstreamer-${{ env.gst_version }}-${{ steps.meson-hash.outputs.hash }}
+      #     restore-keys: |
+      #       ${{ matrix.base_name }}-gstreamer-${{ env.gst_version }}
+      #       ${{ matrix.base_name }}-gstreamer-
+
+      - name: Clone cerbero
         shell: bash
-
-      - name: Configure environment (GitLab-style)
-        working-directory: cerbero
         run: |
-          echo "CERBERO=./cerbero-uninstalled -c ${{ matrix.config }} -c localconf.cbc" >> $GITHUB_ENV
-          echo "CERBERO_ARGS=--variants werror --clocktime --timestamps -v nowerror" >> $GITHUB_ENV
-          echo "CERBERO_PACKAGE_ARGS=-t" >> $GITHUB_ENV
-          echo "CERBERO_HOME=cb" >> $GITHUB_ENV
-          echo "CERBERO_BOOTSTRAP_SYSTEM=no" >> $GITHUB_ENV
-          echo "HAVE_CCACHE=yes" >> $GITHUB_ENV
+          if [ ! -d cerbero ]; then
+            git clone --depth 1 --branch ${{ env.gst_version }} https://gitlab.freedesktop.org/gstreamer/cerbero.git cerbero
+          fi
 
-      # GitLab CI Stage 1 — before_script
-      - name: cerbero_before_script
+      - name: Cache cerbero
+        uses: actions/cache@v4
+        id: cache-cerbero
+        with:
+          path: cerbero/build
+          key: ${{ matrix.base_name }}-cerbero-${{ env.gst_version }}
+          restore-keys: |
+            ${{ matrix.base_name }}-cerbero-
+
+      # - name: Configure meson (Windows)
+      #   if: matrix.os == 'windows-2022' && steps.cache-gstreamer.outputs.cache-hit != 'true'
+      #   working-directory: gstreamer
+      #   env:
+      #     PKG_CONFIG_PATH: ${{ github.workspace }};${{ env.PKG_CONFIG_PATH }}
+      #   shell: cmd
+      #   run: meson setup builddir $meson_args  
+
+      # - name: Configure meson
+      #   if: steps.cache-gstreamer.outputs.cache-hit != 'true'
+      #   working-directory: gstreamer
+      #   run: meson setup builddir $meson_args
+          
+      - name: Configure dependencies (Windows)
+        if: matrix.os == 'windows-2022' && steps.cache-cerbero.outputs.cache-hit != 'true'
         working-directory: cerbero
+        env:
+          CERBERO_HOME: "cb"
+          # CERBERO_SOURCES: "cerbero-sources"
+          CERBERO: "./cerbero-uninstalled -c config/win64.cbc -c localconf.cbc"
+          CERBERO_ARGS: "${DEFAULT_CERBERO_ARGS} -v nowerror"
+          CERBERO_PACKAGE_ARGS: "-t"
+          CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
+          CERBERO_BOOTSTRAP_SYSTEM: "no"
+          # HAVE_CCACHE: "yes"
+          # location where the cerbero git repo is stored on the image
+          CERBERO_HOST_DIR: "/"
+        run: |
+          C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -use-full-path -lc "./ci/cerbero_setup.sh cerbero_deps_script"
+
+      - name: Configure build tool (Windows)
+        if: matrix.os == 'windows-2022' && steps.cache-cerbero.outputs.cache-hit != 'true'
+        working-directory: cerbero
+        env:
+          CERBERO_HOME: "cb"
+          # CERBERO_SOURCES: "cerbero-sources"
+          CERBERO: "./cerbero-uninstalled -c config/win64.cbc -c localconf.cbc"
+          CERBERO_ARGS: "${DEFAULT_CERBERO_ARGS} -v nowerror"
+          CERBERO_PACKAGE_ARGS: "-t"
+          CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
+          CERBERO_BOOTSTRAP_SYSTEM: "no"
+          # HAVE_CCACHE: "yes"
+          # location where the cerbero git repo is stored on the image
+          CERBERO_HOST_DIR: "/"
+        run: |
+          C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -use-full-path -lc "./ci/cerbero_setup.sh cerbero_script"
+
+      # - name: Configure build tool (macOS)
+      #   if: matrix.os == 'macos-15' && steps.cache-cerbero.outputs.cache-hit != 'true'
+      #   working-directory: cerbero
+      #   run: ./cerbero-uninstalled -v qt6 -v noqt5 -v norust -c config/cross-macos-universal.cbc bootstrap
+
+      - name: Configure dependencies (macOS)
+        if: matrix.os == 'macos-15' && steps.cache-cerbero.outputs.cache-hit != 'true'
+        working-directory: cerbero
+        env:
+          CERBERO_HOME: "cb"
+          # CERBERO_SOURCES: "cerbero-sources"
+          CERBERO: "./cerbero-uninstalled -c config/cross-macos-universal.cbc -c localconf.cbc"
+          CERBERO_ARGS: "${DEFAULT_CERBERO_ARGS} -v nowerror"
+          CERBERO_PACKAGE_ARGS: "-t"
+          CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
+          CERBERO_BOOTSTRAP_SYSTEM: "no"
+          # HAVE_CCACHE: "yes"
+          # location where the cerbero git repo is stored on the image
+          CERBERO_HOST_DIR: "/"
         run: |
           ./ci/cerbero_setup.sh cerbero_before_script
+          ./ci/cerbero_setup.sh cerbero_deps_script
 
-      # GitLab CI Stage 2 — dependency bootstrap
-      - name: cerbero_deps_script
-        if: matrix.os == 'windows-2022'
-        working-directory: cerbero
-        run: |
-          C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -lc "./ci/cerbero_setup.sh cerbero_deps_script"
+      # - name: Build
+      #   if: steps.cache-gstreamer.outputs.cache-hit != 'true'
+      #   working-directory: gstreamer
+      #   run: ninja -C builddir
 
-      - name: cerbero_deps_script (macOS)
-        if: matrix.os == 'macos-15'
+      - name: Build
+        if: steps.cache-cerbero.outputs.cache-hit != 'true'
         working-directory: cerbero
-        run: ./ci/cerbero_setup.sh cerbero_deps_script
+        run: ./cerbero-uninstalled -v qt6 -v noqt5 -v norust build gst-plugins-good-1.0 gst-plugins-bad-1.0 gst-plugins-base-1.0 gst-libav-1.0
 
-      # GitLab CI Stage 3 — main cerbero build
-      - name: cerbero_script
-        if: matrix.os == 'windows-2022'
-        working-directory: cerbero
-        run: |
-          C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -lc "./ci/cerbero_setup.sh cerbero_script"
+      # - name: Install
+      #   working-directory: gstreamer
+      #   run: meson install -C builddir
 
-      - name: cerbero_script (macOS)
-        if: matrix.os == 'macos-15'
-        working-directory: cerbero
-        run: ./ci/cerbero_setup.sh cerbero_script
+      # - name: Install
+      #   working-directory: gstreamer
+      #   run: meson install -C builddir
 
-      # Optional GitLab stage — packaging
-      - name: cerbero_package
-        working-directory: cerbero
-        run: |
-          ./cerbero-uninstalled package gstreamer-1.0
+      # - name: Zip
+      #   run: 7z a ${{ matrix.base_name }}-${{ env.gst_version }}.zip "${{ runner.temp }}/gstreamer"
+
+      # - name: Upload artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: ${{ matrix.base_name }}
+      #     path: ${{ matrix.base_name }}-${{ env.gst_version }}.zip
