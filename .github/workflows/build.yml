@@ -118,6 +118,7 @@ jobs:
           fi
 
       - name: Prepare cerbero-sources
+        if: matrix.os == 'macos-15'
         run: |
           mkdir -p cerbero/cerbero-sources
           rsync -a cerbero/recipes/ cerbero/cerbero-sources/
