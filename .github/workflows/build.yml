@@ -1,0 +1,79 @@
+name: Cerbero CI (GitLab-Equivalent)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  cerbero:
+    strategy:
+      matrix:
+        include:
+          - os: windows-2022
+            config: config/win64.cbc
+          - os: macos-15
+            config: config/cross-macos-universal.cbc
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install meson ninja cmake
+
+      - name: Clone Cerbero
+        run: |
+          git clone --depth 1 --branch 1.26.8 https://gitlab.freedesktop.org/gstreamer/cerbero.git
+        shell: bash
+
+      - name: Configure environment (GitLab-style)
+        working-directory: cerbero
+        run: |
+          echo "CERBERO=./cerbero-uninstalled -c ${{ matrix.config }} -c localconf.cbc" >> $GITHUB_ENV
+          echo "CERBERO_ARGS=--variants werror --clocktime --timestamps -v nowerror" >> $GITHUB_ENV
+          echo "CERBERO_PACKAGE_ARGS=-t" >> $GITHUB_ENV
+          echo "CERBERO_HOME=cb" >> $GITHUB_ENV
+          echo "CERBERO_BOOTSTRAP_SYSTEM=no" >> $GITHUB_ENV
+          echo "HAVE_CCACHE=yes" >> $GITHUB_ENV
+
+      # GitLab CI Stage 1 — before_script
+      - name: cerbero_before_script
+        working-directory: cerbero
+        run: |
+          ./ci/cerbero_setup.sh cerbero_before_script
+
+      # GitLab CI Stage 2 — dependency bootstrap
+      - name: cerbero_deps_script
+        if: matrix.os == 'windows-2022'
+        working-directory: cerbero
+        run: |
+          C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -lc "./ci/cerbero_setup.sh cerbero_deps_script"
+
+      - name: cerbero_deps_script (macOS)
+        if: matrix.os == 'macos-15'
+        working-directory: cerbero
+        run: ./ci/cerbero_setup.sh cerbero_deps_script
+
+      # GitLab CI Stage 3 — main cerbero build
+      - name: cerbero_script
+        if: matrix.os == 'windows-2022'
+        working-directory: cerbero
+        run: |
+          C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -lc "./ci/cerbero_setup.sh cerbero_script"
+
+      - name: cerbero_script (macOS)
+        if: matrix.os == 'macos-15'
+        working-directory: cerbero
+        run: ./ci/cerbero_setup.sh cerbero_script
+
+      # Optional GitLab stage — packaging
+      - name: cerbero_package
+        working-directory: cerbero
+        run: |
+          ./cerbero-uninstalled package gstreamer-1.0
