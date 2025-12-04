@@ -144,7 +144,7 @@ jobs:
         working-directory: cerbero
         env:
           CERBERO_HOME: "cb"
-          # CERBERO_SOURCES: "cerbero-sources"
+          CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/win64.cbc"
           CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
           CERBERO_PACKAGE_ARGS: "-t"
@@ -152,7 +152,7 @@ jobs:
           CERBERO_BOOTSTRAP_SYSTEM: "no"
           # HAVE_CCACHE: "yes"
           # location where the cerbero git repo is stored on the image
-          CERBERO_HOST_DIR: "/"
+          CERBERO_HOST_DIR: "C:/cerbero"
         run: |
           C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -use-full-path -lc "./ci/cerbero_setup.sh cerbero_deps_script"
 
@@ -161,7 +161,7 @@ jobs:
         working-directory: cerbero
         env:
           CERBERO_HOME: "cb"
-          # CERBERO_SOURCES: "cerbero-sources"
+          CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/win64.cbc"
           CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror"
           CERBERO_PACKAGE_ARGS: "-t"
@@ -169,7 +169,7 @@ jobs:
           CERBERO_BOOTSTRAP_SYSTEM: "no"
           # HAVE_CCACHE: "yes"
           # location where the cerbero git repo is stored on the image
-          CERBERO_HOST_DIR: "/"
+          CERBERO_HOST_DIR: "C:/cerbero"
         run: |
           C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -use-full-path -lc "./ci/cerbero_setup.sh cerbero_script"
 
@@ -191,7 +191,7 @@ jobs:
           CERBERO_BOOTSTRAP_SYSTEM: "no"
           # HAVE_CCACHE: "yes"
           # location where the cerbero git repo is stored on the image
-          CERBERO_HOST_DIR: "/"
+          CERBERO_HOST_DIR: "/Users/gst-ci/cerbero/"
         run: |
           ./ci/cerbero_setup.sh cerbero_before_script
           ./ci/cerbero_setup.sh cerbero_deps_script
