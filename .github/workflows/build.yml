@@ -90,7 +90,7 @@ jobs:
           fi
 
       - name: Prepare cerbero-sources
-        if: matrix.os == 'macos-15'
+        shell: bash
         run: |
           mkdir -p cerbero/cerbero-sources
           rsync -a cerbero/recipes/ cerbero/cerbero-sources/
@@ -108,17 +108,19 @@ jobs:
         if: matrix.os == 'windows-2022' && steps.cache-cerbero.outputs.cache-hit != 'true'
         working-directory: cerbero
         env:
+          CONFIG: 'win64.cbc'
           CERBERO_HOME: "cb"
           CERBERO_SOURCES: "cerbero-sources"
           CERBERO: "./cerbero-uninstalled -c config/win64.cbc"
           CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror -v norust -v qt6 -v noqt5"
           CERBERO_PACKAGE_ARGS: "-t"
-          CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
+          CERBERO_RUN_SUFFIX: ".exe"
           CERBERO_BOOTSTRAP_SYSTEM: "no"
-          # HAVE_CCACHE: "yes"
+          HAVE_CCACHE: ""
           # location where the cerbero git repo is stored on the image
           CERBERO_HOST_DIR: "C:/cerbero"
         run: |
+          ./cerbero-uninstalled --help
           C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -use-full-path -lc "./ci/cerbero_setup.sh cerbero_deps_script"
           C:\msys64\msys2_shell.cmd -ucrt64 -defterm -no-start -here -use-full-path -lc "./ci/cerbero_setup.sh cerbero_script"
 
@@ -136,7 +138,7 @@ jobs:
           CERBERO: "./cerbero-uninstalled -c config/cross-macos-universal.cbc"
           CERBERO_ARGS: "${{ env.DEFAULT_CERBERO_ARGS }} -v nowerror -v norust -v qt6 -v noqt5"
           CERBERO_PACKAGE_ARGS: ""
-          CERBERO_RUN_SUFFIX: "" # '.exe' on cross-winXX
+          CERBERO_RUN_SUFFIX: ""
           CERBERO_BOOTSTRAP_SYSTEM: "no"
           HAVE_CCACHE: ""
           # location where the cerbero git repo is stored on the image
