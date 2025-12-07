@@ -93,7 +93,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p cerbero/cerbero-sources
-          rsync -a cerbero/recipes/ cerbero/cerbero-sources/
+          cp -r cerbero/recipes/ cerbero/cerbero-sources/
 
       - name: Cache cerbero
         uses: actions/cache@v4
